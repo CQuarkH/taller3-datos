@@ -50,7 +50,7 @@ def save_to_csv(features, output_path):
                 "place": props.get("place", "")
             })
 
-if __name__ == "__main__":
+def get_save_data():
     features = fetch_data()
 
     for feat in features:
@@ -62,6 +62,6 @@ if __name__ == "__main__":
               f"dmin {p.get('dmin','?')}° | rms {p.get('rms','?')} | "
               f"{c[1]},{c[0]} @ {c[2]} km | {p.get('place')}")
 
-    output_file = "data/earthquakes.csv"
+    output_file = "../data/earthquakes.csv"
     save_to_csv(features, output_file)
     print(f"\nDatos guardados en '{output_file}'")
