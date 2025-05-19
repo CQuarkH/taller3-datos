@@ -1,3 +1,6 @@
 pytest
 requests
 pandas
+nltk
+matplotlib
+seaborn

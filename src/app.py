@@ -1,84 +1,68 @@
-import os
-import csv
 import requests
-from datetime import datetime
+import zipfile
+import pandas as pd
+import io
+import os
 
-def fetch_data():
-    params = {
-        "format": "geojson",
-        "starttime": "2025-03-30",
-        "endtime": "2025-04-30",
-        "minmagnitude": 4.5,
-        "limit": 100,
-        "orderby": "time"
-    }
-    response = requests.get(
-        "https://earthquake.usgs.gov/fdsnws/event/1/query",
-        params=params
-    )
-    response.raise_for_status()
-    return response.json()["features"]
+zip_url = "https://www.kaggle.com/api/v1/datasets/download/clmentbisaillon/fake-and-real-news-dataset"
 
-def save_to_csv(features, output_path):
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    fieldnames = [
-        "id", "time", "latitude", "longitude", "depth",
-        "magnitude", "magType", "nst", "gap", "dmin", "rms",
-        "felt", "cdi", "mmi", "sig", "tsunami",
-        "place", "status", "type", "net", "code", "ids",
-        "sources", "alert", "detail", "title"
-    ]
+def download_extract_zip_to_csv(output_dir="../data"):
+    try:
+        print(f"Downloading zip file from: {zip_url}...")
+        response = requests.get(zip_url, stream=True)
+        response.raise_for_status()
 
-    with open(output_path, mode="w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+        zip_filename = "downloaded_data.zip"
+        with open(zip_filename, 'wb') as zip_file:
+            for chunk in response.iter_content(chunk_size=8192):
+                zip_file.write(chunk)
+        print(f"Zip file downloaded successfully to: {zip_filename}")
 
-        for feat in features:
-            props = feat["properties"]
-            coords = feat["geometry"]["coordinates"]
-            iso_time = datetime.utcfromtimestamp(props["time"] / 1000).isoformat() + "Z"
+        print(f"Extracting CSV files...")
+        with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
+            extracted_files = zip_ref.namelist()
+            csv_files_extracted = False
 
-            writer.writerow({
-                "id": feat["id"],
-                "time": iso_time,
-                "latitude": coords[1],
-                "longitude": coords[0],
-                "depth": coords[2],
-                "magnitude": props.get("mag"),
-                "magType": props.get("magType"),
-                "nst": props.get("nst"),
-                "gap": props.get("gap"),
-                "dmin": props.get("dmin"),
-                "rms": props.get("rms"),
-                "felt": props.get("felt"),
-                "cdi": props.get("cdi"),
-                "mmi": props.get("mmi"),
-                "sig": props.get("sig"),
-                "tsunami": props.get("tsunami"),
-                "place": props.get("place"),
-                "status": props.get("status"),
-                "type": props.get("type"),
-                "net": props.get("net"),
-                "code": props.get("code"),
-                "ids": props.get("ids"),
-                "sources": props.get("sources"),
-                "alert": props.get("alert"),
-                "detail": props.get("detail"),
-                "title": props.get("title")
-            })
+            os.makedirs(output_dir, exist_ok=True)
 
-def get_save_data():
-    features = fetch_data()
+            for file in extracted_files:
+                if file.endswith(".csv"):
+                    print(f"Found CSV file: {file}")
+                    with zip_ref.open(file) as csv_file_in_zip:
+                        csv_content = io.TextIOWrapper(csv_file_in_zip, encoding='utf-8')
+                        df = pd.read_csv(csv_content)
+                        output_path = os.path.join(output_dir, file)
+                        df.to_csv(output_path, index=False, encoding='utf-8')
+                        print(f"CSV file saved to: {output_path}")
+                        csv_files_extracted = True
 
-    for feat in features:
-        p = feat["properties"]
-        c = feat["geometry"]["coordinates"]
-        t = datetime.utcfromtimestamp(p["time"] / 1000).isoformat() + "Z"
-        print(f"{feat['id']} | {t} | Mag {p['mag']} ({p.get('magType')}) | "
-              f"{p.get('nst','?')} stations | gap {p.get('gap','?')}° | "
-              f"dmin {p.get('dmin','?')}° | rms {p.get('rms','?')} | "
-              f"{c[1]},{c[0]} @ {c[2]} km | {p.get('place')}")
+            if not csv_files_extracted:
+                print("No .csv files found within the zip archive.")
+                return False
 
-    output_file = "../data/earthquakes.csv"
-    save_to_csv(features, output_file)
-    print(f"\nDatos guardados en '{output_file}'")
+        os.remove(zip_filename)
+        print(f"Deleted the downloaded zip file: {zip_filename}")
+        return True
+
+    except requests.exceptions.RequestException as e:
+        print(f"Download error: {e}")
+        return False
+    except zipfile.BadZipFile as e:
+        print(f"Error with the zip file: {e}")
+        return False
+    except pd.errors.EmptyDataError:
+        print("One or more of the extracted CSV files are empty.")
+        return False
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return False
+    
+
+
+if __name__ == "__main__":
+    download_successful = download_extract_zip_to_csv(output_dir="data")
+
+    if download_successful:
+        print("Successfully downloaded and extracted the CSV files.")
+    else:
+        print("There was an issue during the download or extraction process.")
