@@ -34,14 +34,9 @@ pip install -r requirements.txt
 ```
 
 ## Uso
-1. Asegurarse de tener los archivos de datos en la carpeta `data/`.
+1. Ejectutar el notebook de Jupyter para el análisis exploratorio desde VS Code teniendo el entorno virtual activado.
 
-2. Ejectuta la aplicación
-```bash
-python src/app.py
-```
-
-3. Los resultados procesados se guardarán en la carpeta data/processed_data.csv
+2. Los datasets procesados se guardarán en data.
 
 ### Estructura del proyecto
 - src/: Código fuente de la aplicación.
