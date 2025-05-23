@@ -1,11 +1,16 @@
+# Bloque de código para descargar y extraer los datos sobre las noticias falsas, desde la API de Kaggle
+# Este bloque puede ser llamado desde el main.py o desde el notebook de Jupyter
 import requests
 import zipfile
 import pandas as pd
 import io
 import os
 
+# URL del archivo zip en Kaggle
 zip_url = "https://www.kaggle.com/api/v1/datasets/download/clmentbisaillon/fake-and-real-news-dataset"
 
+# Función para descargar el archivo zip y extraer los archivos CSV
+# de la carpeta de salida especificada
 def download_extract_zip_to_csv(output_dir="../data"):
     try:
         print(f"Downloading zip file from: {zip_url}...")
